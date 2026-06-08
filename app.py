@@ -1,6 +1,6 @@
 import pickle
 from pathlib import Path
-import pandas as pd
+import numpy as np
 import streamlit as st
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -101,8 +101,8 @@ def get_health_tips(is_diabetic, data):
     return tips
 
 
-def build_input_dataframe(data):
-    return pd.DataFrame([[
+def build_input_array(data):
+    return np.array([[
         data["pregnancies"],
         data["glucose"],
         data["bloodPressure"],
@@ -111,13 +111,13 @@ def build_input_dataframe(data):
         data["bmi"],
         data["diabetesPedigree"],
         data["age"],
-    ]], columns=CSV_COLUMNS)
+    ]], dtype=float)
 
 
 def predict(data, model):
-    input_df = build_input_dataframe(data)
-    prediction = model.predict(input_df)[0]
-    proba = model.predict_proba(input_df)[0][1]
+    input_array = build_input_array(data)
+    prediction = model.predict(input_array)[0]
+    proba = model.predict_proba(input_array)[0][1]
     diabetes_chance = round(proba * 100, 2)
     confidence = round(abs(proba - 0.5) * 2 * 100, 2)
     if diabetes_chance >= 70:
@@ -208,10 +208,11 @@ if submitted:
 
     st.subheader("Feature importance")
     st.table(
-        pd.DataFrame(
-            list(result["featureImportance"].items()),
-            columns=["Feature", "Importance"]
-        ).sort_values(by="Importance", ascending=False)
+        sorted(
+            [{"Feature": k, "Importance": v} for k, v in result["featureImportance"].items()],
+            key=lambda row: row["Importance"],
+            reverse=True,
+        )
     )
 
     st.info("This is a model prediction only and not medical advice.")
